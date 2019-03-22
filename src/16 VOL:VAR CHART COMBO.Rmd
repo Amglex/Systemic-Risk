@@ -1,0 +1,180 @@
+---
+title: "R Notebook"
+---
+
+```{r}
+rm(list =ls())
+```
+
+```{r, warning=FALSE, message=FALSE}
+library(xts)
+library(quantreg)
+```
+
+Load data
+
+```{r}
+load("~/Dropbox/Research Seminar/R/R data/dailyreturn.Rda")
+load("~/Dropbox/Research Seminar/R/R data/dailyvar_01.Rda")
+load("~/Dropbox/Research Seminar/R/R data/dailyvol_gjr_GARCH.Rda")
+```
+
+```{r}
+dailyvol <- dailyvol_gjr_GARCH/100
+dailyvar <- dailyvar_01 
+stock.name <- names(dailyvar_01)
+stock.number <- length(stock.name)
+stock.length <- dim(dailyvar_01)[1]
+```
+
+```{r}
+names <- c("American International Group Inc","J.P. Morgan Chase & Co","S&P 500")
+```
+
+
+
+# Returns
+
+```{r}
+series.vol <- cbind(exp(dailyreturn[,names]))-1
+```
+
+```{r}
+setwd("~/Dropbox/Research Seminar/R/Graphs/Pr??si/Vol-Var")
+png("Return_Combo_01.png",width = 3500, height = 1000, res=110)
+
+layout(matrix(c(rep(1,6),rep(2,6),rep(3,9)), 21,1, byrow = TRUE))
+# ## show the regions that have been allocated to each plot
+#layout.show(2)
+#op <- par(mfrow=c(3,1),oma=c(1,1,1,1),mar=c(4,4,2,0),cex=1.5)
+
+par(oma=c(0,2,0,0))
+par(mar=c(0,4,1,2),cex=2.5,lwd=3)
+i <- 1
+plot.zoo(series.vol[,i],ylim = c(-1,1),ylab="",xaxt="n",las=1,lwd=3)
+legend("topleft", colnames(series.vol)[i], bty="n") 
+
+par(mar=c(0,4,1,2),cex=2.5)
+
+i <- 2
+plot.zoo(series.vol[,i],ylim = c(-1,1),ylab="",xaxt="n",las=1,lwd=3)
+legend("topleft", colnames(series.vol)[i], bty="n")
+
+par(mar=c(3,4,1,2),cex=2.5)
+
+i <- 3
+plot.zoo(series.vol[,i],ylim = c(-1,1),ylab="",xlab = "",las=1,xaxt="n",lwd=3)
+legend("topleft", colnames(series.vol)[i], bty="n")
+axis.Date(1,at=pretty(index(series.vol[,i]),28),
+            labels=format(pretty(index(series.vol[,i]),28),format="%Y"),
+            las=1)
+
+title(ylab = "Daily simple return",
+      outer = TRUE, line = 0)
+#op
+dev.off()
+```
+
+# Volatility
+
+```{r}
+series.vol <- cbind(dailyvol[,names])
+series.var <- cbind(dailyvar_01[,names])
+```
+
+```{r}
+setwd("~/Dropbox/Research Seminar/R/Graphs/Pr??si/Vol-Var")
+png("Vol_Combo_01.png",width = 3500, height = 1000, res=110)
+
+layout(matrix(c(rep(1,6),rep(2,6),rep(3,9)), 21,1, byrow = TRUE))
+# ## show the regions that have been allocated to each plot
+#layout.show(2)
+#op <- par(mfrow=c(3,1),oma=c(1,1,1,1),mar=c(4,4,2,0),cex=1.5)
+
+par(oma=c(0,2,0,0))
+par(mar=c(0,4,1,2),cex=2.5,lwd=3)
+i <- 1
+plot.zoo(series.vol[,i],ylim = c(0,0.4),ylab="",xaxt="n",las=1,lwd=3)
+legend("topleft", colnames(series.vol)[i], bty="n") 
+
+par(mar=c(0,4,1,2),cex=2.5)
+
+i <- 2
+plot.zoo(series.vol[,i],ylim = c(0,0.4),ylab="",xaxt="n",las=1,lwd=3)
+legend("topleft", colnames(series.vol)[i], bty="n")
+
+par(mar=c(3,4,1,2),cex=2.5)
+
+i <- 3
+plot.zoo(series.vol[,i],ylim = c(0,0.4),ylab="",xlab = "",las=1,xaxt="n",lwd=3)
+legend("topleft", colnames(series.vol)[i], bty="n")
+axis.Date(1,at=pretty(index(series.vol[,i]),28),
+            labels=format(pretty(index(series.vol[,i]),28),format="%Y"),
+            las=1)
+
+title(ylab = "Conditional Daily Volatility [GJR-GARCH]",
+      outer = TRUE, line = 0)
+#op
+dev.off()
+```
+
+
+```{r}
+series.quantile_01 <- series.var
+series.quantile_5 <- series.var
+series.quantile_01[] <- NA
+series.quantile_5[] <- NA
+
+for(i in 1:3) {
+series.quantile_01[,i] <- quantile(series.var[,i],0.01)  
+series.quantile_5[,i] <- quantile(series.var[,i],0.5)  
+}
+```
+
+
+```{r}
+setwd("~/Dropbox/Research Seminar/R/Graphs/Pr??si/Vol-Var")
+png("VaR_Combo_01.png",width = 3500, height = 1000, res=110)
+
+layout(matrix(c(rep(1,6),rep(2,6),rep(3,9)), 21,1, byrow = TRUE))
+
+lwd=c(3,2,2)
+lty=c(1,2,3)
+
+par(oma=c(0,2,0,0))
+par(mar=c(0,4,1,2),cex=2.5,lwd=3)
+i <- 1
+series_01 <- cbind(series.var[,i],series.quantile_01[,i],series.quantile_5[,i])
+plot.zoo(series_01,ylim = c(-1,0),ylab="",xaxt="n",las=1,lwd=lwd,lty=lty,plot.type = "single")
+legend("bottomleft", colnames(series.vol)[i], bty="n") 
+
+par(mar=c(0,4,1,2),cex=2.5)
+
+i <- 2
+series_02 <- cbind(series.var[,i],series.quantile_01[,i],series.quantile_5[,i])
+plot.zoo(series_02,ylim = c(-1,0),ylab="",xaxt="n",las=1,lwd=lwd,lty=lty,plot.type = "single")
+line(series.quantile_01[,i])
+line(series.quantile_5[,i])
+legend("bottomleft", colnames(series.vol)[i], bty="n")
+
+par(mar=c(3,4,1,2),cex=2.5)
+
+i <- 3
+series_03 <- cbind(series.var[,i],series.quantile_01[,i],series.quantile_5[,i])
+plot.zoo(series_03,ylim = c(-1,0),ylab="",xlab = "",las=1,xaxt="n",lwd=lwd,lty=lty,plot.type = "single")
+line(series.quantile_01[,i])
+line(series.quantile_5[,i])
+legend("bottomleft", colnames(series.vol)[i], bty="n")
+legend("bottomright",c("50% quantile","1% quantile"), lty=c(3,2), bty="n")
+axis.Date(1,at=pretty(index(series.vol[,i]),28),
+            labels=format(pretty(index(series.vol[,i]),28),format="%Y"),
+            las=1)
+
+title(ylab = "Daily 1% VaR",
+      outer = TRUE, line = 0)
+
+#op
+dev.off()
+```
+
+

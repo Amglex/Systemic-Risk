@@ -1,0 +1,178 @@
+---
+title: "RESULT SUMMARY"
+---
+
+```{r, warning=FALSE}
+library(quantreg)
+library(xtable)
+library(readr)
+library(xts)
+```
+
+```{r}
+rm(list =ls())
+```
+
+```{r,message=FALSE}
+load("~/Dropbox/Research Seminar/R/R data/dailyvar_01.Rda")
+
+load("~/Dropbox/Research Seminar/R/R data/dailymarketcap.Rda")
+
+load("~/Dropbox/Research Seminar/R/R data/SIC.Rda")
+
+SRISK <- read_csv("~/Dropbox/Research Seminar/Data/SRISK_2017_12.csv")
+
+load("~/Dropbox/Research Seminar/R/R data/quantreg_01.Rda")
+
+```
+
+```{r}
+dailyvar <- dailyvar_01
+stock.name <- colnames(dailyvar)
+stock.number <- length(stock.name)-1
+index.number <- length(stock.name)
+```
+
+# SRISK aufbereiten
+
+```{r}
+SRISK.drop <- c("Ally Financial Inc","Brighthouse Financial Inc","Voya Financial Inc","CIT Group Inc","CNO Financial Group Inc" )
+SRISK.name <- row.names(SRISK)[!SRISK$Institution %in% SRISK.drop]
+SRISK <- SRISK[SRISK.name,]
+
+# Change Name of SVB to match name in other files
+SRISK.svb.name <- row.names(SRISK)[SRISK$Institution %in% "SVB Financial Group"]
+SRISK[SRISK.svb.name,1] <- "S V B Financial Group"
+
+
+# Add S&P row to SRISK and make it missing
+SRISK[33,1] <- "S&P 500"
+SRISK[33,2:9] <- NA
+
+# Save
+save(SRISK,file="../R data/SRISK.Rda")
+
+# Sort SRISK
+SRISK.sorted <- SRISK[order(SRISK$Institution),]
+```
+
+# Marketcap aufbereiten
+
+```{r}
+# Transform into billions
+marketcap <- dailymarketcap/(1*10^9)
+marketcap[,] <- dailymarketcap/(1*10^9)
+
+marketcap <- as.data.frame(t(marketcap["2017-12-29",]))
+marketcap$Institution <- row.names(marketcap)
+
+marketcap.sorted <- marketcap[order(marketcap$Institution),][1]
+colnames(marketcap.sorted) <- "Marketcap in Mrd."
+marketcap <- marketcap.sorted
+save(marketcap,file="../R data/marketcap.Rda")
+
+```
+
+
+Prepare result matrix: VaR
+
+```{r}
+row_name <- stock.name
+col_name <- c("1% VaR quantil in %","5% VaR quantil in %","50% VaR quantil in %","VaR Diff in %","VaR Diff in %")
+result.VaR_01 <- data.frame(matrix(nrow = length(row_name), ncol = 5), stringsAsFactors = FALSE)
+rownames(result.VaR_01) <- row_name
+colnames(result.VaR_01) <- col_name
+```
+
+
+```{r}
+for (i in 1:index.number) {
+  result.VaR_01[i,1] <- quantile(dailyvar_01[,i], probs = 0.01, na.rm=TRUE)*100
+  result.VaR_01[i,2] <- quantile(dailyvar_01[,i], probs = 0.05, na.rm=TRUE)*100
+  result.VaR_01[i,3] <- quantile(dailyvar_01[,i], probs = 0.5, na.rm=TRUE)*100
+  result.VaR_01[i,4] <- result.VaR_01[i,1] - result.VaR_01[i,3]
+  result.VaR_01[i,5] <- result.VaR_01[i,2] - result.VaR_01[i,3]
+}
+```
+
+
+Order result.qreg und result.VaR and SIC
+
+```{r}
+result.VaR.sorted_01 <- result.VaR_01[order(rownames(result.VaR_01)),]
+
+quantreg_01.sorted <- quantreg_01[order(rownames(quantreg_01)),]
+
+SIC.sorted <- SIC[order(SIC$COMNAM),]
+```
+
+
+
+Prepare result matrix: Summary
+
+Verbindet Ergebnisse aus
+I. SRISK
+II. result.qreg
+III. result.VaR
+IIII. marketcap
+
+
+Alles zusammenf??gen
+
+# 1% VaR
+
+```{r}
+row_name <- sort(stock.name)
+result_01 <- data.frame(matrix(nrow = length(row_name), ncol = 0), stringsAsFactors = FALSE)
+rownames(result_01) <- row_name
+```
+
+```{r}
+# Abgleichen, ob auch alles stimmt! 
+# ===============================
+# result_01$"SRISK name" <- SRISK.sorted$Institution
+# result_01$"Qreg name" <- rownames(quantreg_01.sorted)
+# result_01$"VaR name" <- rownames(result.VaR.sorted)
+# result_01$"Marketcap name" <- rownames(marketcap.sorted)
+# result_01$"SIC name" <- SIC.sorted$COMNAM
+
+result_01$"Ticker" <- SIC.sorted$TICKER
+result_01$"Industry" <- SIC.sorted$Industry
+
+result_01$"SRISK in Mrd. $" <- -SRISK.sorted$`SRISK ($ m)`/1000
+result_01$LRMES <- SRISK.sorted$LRMES
+result_01$Beta <- SRISK.sorted$Beta
+result_01$Cor <- SRISK.sorted$Cor
+result_01$Vol <- SRISK.sorted$Vol
+result_01$Lvg <- SRISK.sorted$Lvg
+
+result_01$"Marketcap in Mrd. $" <- marketcap.sorted$`Marketcap in Mrd.`
+
+
+result_01$"1% VaR quantil in %" <- result.VaR.sorted_01$`1% VaR quantil in %`
+result_01$"5% VaR quantil in %" <- result.VaR.sorted_01$`5% VaR quantil in %`
+result_01$"50% VaR quantil in %" <- result.VaR.sorted_01$`50% VaR quantil in %`
+
+result_01$"VaR Diff in %" <- result.VaR.sorted_01[,4]
+result_01$"1% sens" <- quantreg_01.sorted$`1% sens`
+result_01$"5% sens" <- quantreg_01.sorted$`5% sens`
+result_01$"50% sens" <- quantreg_01.sorted$`50% sens`
+
+result_01$"SSVaR in %" <- result_01$`1% sens` * result_01$"VaR Diff in %"
+
+result_01$"VaR Diff in Mrd. $" <- result_01$`VaR Diff in %`/100 * result_01$`Marketcap in Mrd. $`
+
+result_01$"SSVaR in Mrd. $" <- result_01$`1% sens` * result_01$"VaR Diff in Mrd. $"
+```
+
+# Naming
+
+```{r}
+
+result_daily <- result_01
+```
+
+```{r}
+save(result_daily,file="../Result data/result_daily.Rda")
+```
+

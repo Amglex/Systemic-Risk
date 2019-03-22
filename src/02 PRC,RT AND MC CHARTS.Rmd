@@ -1,0 +1,87 @@
+---
+title: "CHARTS"
+---
+
+```{r}
+rm(list=ls())
+```
+
+```{r,warning=FALSE}
+library(xts)
+```
+
+```{r}
+path <- "~/Dropbox/Research Seminar/"
+
+load(paste0(path,"R/R data/dailyprice.Rda"))
+load(paste0(path,"R/R data/dailyreturn.Rda"))
+load(paste0(path,"R/R data/dailymarketcap.Rda"))
+```
+
+```{r}
+stock.name <- names(dailyreturn)
+stock.number <- length(stock.name)
+stock.length <- dim(dailyreturn)[1]
+```
+
+Price Charts
+
+```{r, warning=FALSE}
+setwd("../Graphs/Price/Daily")
+
+for (i in 1:stock.number) {
+  png(paste0(i," - ",stock.name[i],".png",sep=""),width = 1400, height = 1000)
+  par(cex=2)
+  plot.zoo(dailyprice[,i], main = colnames(dailyprice[,i]),ylab="Daily adjusted closing price",xaxt="n",xlab="Date",ylim = c(0,max(dailyprice[,i],na.rm = TRUE)))
+  axis.Date(1,at=pretty(index(dailyprice[,i]),15),
+            labels=format(pretty(index(dailyprice[,i]),15),format="%Y"))
+  dev.off()
+}
+```
+
+Return Charts
+
+```{r, warning=FALSE}
+setwd("../Graphs/Return/Daily")
+
+for (i in 1:stock.number) {
+  png(paste0(i," - ",stock.name[i],".png",sep=""),width = 1400, height = 1000)
+  par(cex=2)
+  plot.zoo(dailyreturn[,i], main = colnames(dailyprice[,i]),ylab="Daily log return",xaxt="n",xlab="Date",ylim = (c(-0.7,0.7)))
+  axis.Date(1,at=pretty(index(dailyreturn[,i]),15),
+            labels=format(pretty(index(dailyreturn[,i]),15),format="%Y"))
+  dev.off()
+}
+```
+
+Market Cap Charts
+
+```{r, warning=FALSE}
+setwd("../Graphs/Market Cap/Daily")
+
+for (i in 1:stock.number) {
+  png(paste0(i," - ",stock.name[i],".png",sep=""),width = 1400, height = 1000)
+  par(cex=2)
+  plot.zoo(dailymarketcap[,i], 
+           main = colnames(dailymarketcap[,i]),
+           ylab="Daily Market Cap in Mrd.",
+           axes=FALSE,xlab="Date",
+           ylim = c(0,max(dailymarketcap[,i],na.rm = TRUE)))
+  axis.Date(1,at=pretty(index(dailymarketcap[,i]),15),
+            labels=format(pretty(index(dailymarketcap[,i]),15),format="%Y"))
+  pts <- pretty(c(0,dailymarketcap[,i]))
+  label <- pretty(c(0,dailymarketcap[,i]/1000000000))
+  axis(2, at = pts, labels = label)
+  mytext.y <- 0
+  mytext.x <- index(dailymarketcap["2017-12-29",i])
+  mytext.lab <- paste0(round(as.vector(dailymarketcap["2017-12-29",i])/1000000000,2)," Mrd")
+  text(x=mytext.x,y=mytext.y, mytext.lab, 1)
+  dev.off()
+}
+```
+
+
+
+
+
+

@@ -1,0 +1,75 @@
+---
+title: "CORRELATION MATRIX"
+---
+
+```{r}
+rm(list =ls())
+```
+
+```{r}
+library(xtable)
+library(ggplot2)
+```
+
+
+```{r}
+load("../Result data/result_daily.Rda")
+mydata <- result_daily[-28,3:19]
+```
+
+
+Correlation Matrix
+====================
+
+Results:
+
+
+```{r}
+
+cormatrix <- mydata
+colnames(cormatrix) <- colnames(mydata)
+
+cormatrix <- cor(cormatrix)
+
+library(reshape2)
+require(ggplot2)
+
+get_lower_tri<-function(cormat){    # Function to get onyl the lower half of the correlation matrix
+    cormat[upper.tri(cormat)] <- NA
+    return(cormat)
+}
+
+lower_tri <- get_lower_tri(cormatrix) # Get lower half
+
+melted_cormat <- melt(lower_tri, na.rm = TRUE)  # Reformat the data 
+
+melted_cormat[,3] <- round(melted_cormat[,3],2)
+
+correlationmatrix <- ggplot(data = melted_cormat, aes(x=Var1, y=Var2, fill=value)) + # Generate plot
+  geom_tile(color = "white") +
+  geom_text(aes(Var1, Var2, label = value), color = "black", size = 3) +
+    scale_fill_gradient2(low = "blue", high = "red", limit = c(-1,1), space = "Lab", 
+    name="Pearson\nCorrelation") +
+  theme_minimal() + 
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.major = element_blank(),
+    panel.border = element_blank(),
+    panel.background = element_blank(),
+    axis.ticks = element_blank(),
+    legend.justification = c(1, 0),
+    legend.position = c(0.5, 0.8),
+    legend.direction = "horizontal") +
+  guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+    title.position = "top", title.hjust = 0.5)) +
+  coord_fixed()
+
+ggsave("correlatinmatrix.pdf", width = 20, height = 20, units = "cm")
+```
+
+```{r}
+xtable(lower_tri)
+```
+

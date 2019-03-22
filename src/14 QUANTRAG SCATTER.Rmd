@@ -1,0 +1,135 @@
+---
+title: "QUANTREG SCATTER PLOT"
+---
+
+```{r}
+rm(list =ls())
+```
+
+```{r}
+library(quantreg)
+```
+
+```{r}
+load("~/Dropbox/Research Seminar/R/R data/dailyvar_01.Rda")
+```
+
+```{r}
+stock.name <- colnames(dailyvar_01)
+stock.number <- length(stock.name)
+stock.length <- dim(dailyvar_01)[1]
+index.number <- which(colnames(dailyvar_01)=="S&P 500")
+```
+
+
+```{r}
+dailyvar <- as.matrix(dailyvar_01)
+```
+
+
+Set up plotting function
+```{r}
+myqrscatterplot <- function(i,lwd=1,cex=1,ylab=NULL,mar=c(6,8,3,2)) {
+  FI <- NA
+  Index <- NA
+  FI <- dailyvar[,i]
+  Index <- dailyvar[,index.number]
+  
+  x <- quantile(Index,0.01,na.rm=TRUE)
+  
+  Index1 <- Index[Index<x]
+  FI1 <- FI[Index<x]
+  
+  Index0 <- Index[Index>x]
+  FI0 <- FI[Index>x]
+  cex.lab <- cex*1.25
+  cex.point <- cex/1.5
+  par(mar=mar,cex.lab=cex.lab,cex.main=cex.lab,lwd=lwd)
+  plot(FI,Index,cex.axis=cex,type="n",xlab=paste0("VaR ",stock.name[i]),
+       ylab="",las=1,lwd=lwd,
+       xlim=c(-1,0),ylim=c(min(Index,na.rm = TRUE),0))
+  title(ylab = ylab, mgp = c(5, 1, 0))
+  title(main=stock.name[i],line = 1)
+
+  legend("bottomright",c("Upper quantiles","OLS","Lower quantiles","1% quantile S&P 500"),
+         lty=c(2,1,3,0),pch=c(26,26,26,6),lwd=lwd,
+         col=c("grey35","black","grey35"), bty="n",cex=cex/1.15)
+  
+  points(FI1,Index1,cex=cex.point,col="grey25",pch=6)
+  points(FI0,Index0,cex=cex.point,col="grey25",pch=1)
+  
+  #abline(rq(Index~FI,tau=0.5),col="black",lty=2,cex=cex,lwd=lwd)
+  abline(lm(Index~FI),lty=1,col="black",cex=cex,lwd=lwd)
+  #abline(rq(Index~FI,tau=0.01)[2],rq(Index~FI,tau=0.01)[1],col="grey35",lty=2,cex=cex,lwd=lwd)
+  
+  taus <- c(.75,.90,0.99)
+  for( j in 1:length(taus)){
+    abline(rq(Index~FI,tau=taus[j]),col="grey35",cex=cex,lwd=lwd,lty=2) 
+  } 
+  
+  taus <- c(0.01,.1,.25)
+  for( j in 1:length(taus)){
+    abline(rq(Index~FI,tau=taus[j]),col="grey35",cex=cex,lwd=lwd,lty=3) 
+  } 
+}  
+```
+
+
+```{r}
+setwd("~/Dropbox/Research Seminar/R/Graphs/Ergebnisse")
+dailyvar <- as.matrix(dailyvar_01)
+FI <- dailyvar[,1]
+Index <- dailyvar[,1]
+
+png("Scatter_Qreg_Combo.png",width = 3000, height = 1000, res=110)
+par(mfcol=c(1,2),oma=c(1,1,1,1))
+
+myqrscatterplot(2,lwd=3,cex=1.5,ylab="VaR S&P 500")
+myqrscatterplot(19,lwd=3,cex=1.5,mar=c(6,4,3,6))
+
+dev.off()
+
+```
+
+<!-- # Combo Chart -->
+
+<!-- ```{r} -->
+<!-- #chart_names <- c("Jpmorgan Chase & Co","Morgan Stanley Group Inc","Zions Bancorporation","American International Group Inc" -->
+<!-- #                 ,"Lincoln National Corp" ,"M B I A Inc"  ) -->
+
+<!-- chart_names <- c("J.P. Morgan Chase & Co","American International Group Inc") -->
+
+<!-- chart_numbers <- vector(length=length(chart_names)) -->
+
+<!-- for (i in 1:length(chart_names)) { -->
+<!-- chart_numbers[i] <- which(names(dailyvar) %in% chart_names[i])   -->
+<!-- } -->
+<!-- ``` -->
+
+
+<!-- ```{r,warning=FALSE} -->
+<!-- setwd("~/Dropbox/Research Seminar/R/Graphs/Ergebnisse") -->
+
+<!-- png("Combo_2.png",width = 3000, height = 1200,res=110) -->
+
+
+<!-- op <- par(mfcol=c(2,1),cex=1) -->
+
+
+<!-- myqrscatterplot(chart_numbers[1],lwd=5,cex=7) -->
+<!-- #mgp.axis(1, "X Label") -->
+
+<!-- myqrscatterplot(chart_numbers[2],lwd=5,cex=7) -->
+<!-- #mgp.axis(2, "Y Label") -->
+
+<!-- par(op) -->
+<!-- dev.off() -->
+<!-- ``` -->
+
+
+
+
+
+
+
+

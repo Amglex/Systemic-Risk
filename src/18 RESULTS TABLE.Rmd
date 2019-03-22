@@ -1,0 +1,35 @@
+---
+title: "R Notebook"
+---
+
+# Result Table
+
+Load data
+```{r}
+rm(list=ls())
+```
+
+
+```{r}
+load("~/Dropbox/Research Seminar/R/R data/result_01.Rda")
+```
+
+```{r}
+result_01_table <- result_01[,c(3,9:15)]
+
+result_01_table <- result_01_table[order(result_01_table$SRISK),]
+
+names(result_01_table) <- c("SRISK","Market Capitalization","1% VaR quantile","50% VaR quantile","VaR Diff in %","VaR Diff in $","1% sensitivity","SSVaR in %","SSVaR $")
+```
+
+Prepare result Matrix
+
+```{r}
+xtable(result_01_table,  caption = c("result Table","result Table"))
+```
+
+
+```{r}
+save(result_01_table,file = "../R data/result_plain.Rda")
+```
+

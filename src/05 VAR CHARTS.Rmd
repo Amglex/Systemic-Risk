@@ -1,0 +1,114 @@
+---
+title: "VaR Charts"
+---
+
+```{r}
+rm(list =ls())
+```
+
+```{r, warning=FALSE, message=FALSE}
+library(xts)
+library(quantreg)
+```
+
+Load data
+
+```{r}
+load("~/Dropbox/Research Seminar/R/R data/dailyvar_01.Rda")
+```
+
+```{r}
+stock.name <- names(dailyvar_01)
+stock.number <- length(stock.name)
+stock.length <- dim(dailyvar_01)[1]
+```
+
+Combined
+
+```{r, warning=FALSE}
+setwd("~/Dropbox/Research Seminar/R/Graphs/VaR/Daily/Combined")
+
+# Colors
+myCol1 <- rgb(252,141,89, maxColorValue=255)
+myCol2 <- rgb(255,255,191, maxColorValue=255)
+myCol3 <- rgb(145,191,219, maxColorValue=255)
+col <- c(myCol1,myCol2,myCol3)
+
+
+dailyvar.combined <- dailyvar_01[,1:3]
+dailyvar.combined[] <- NA
+colnames(dailyvar.combined) <- c("1% VaR","5% VaR","10% VaR")
+
+data <- dailyvar_01
+for (i in 1:stock.number) {
+  png(paste0(i," - ",stock.name[i],".png"),width = 1400, height = 1000)
+  
+  dailyvar.combined[] <- NA
+  dailyvar.combined[,1] <- dailyvar_01[,i]
+  dailyvar.combined[,2] <- dailyvar_05[,i]
+  dailyvar.combined[,3] <- dailyvar_10[,i]
+  
+  par(cex=2)
+  plot.zoo(dailyvar.combined, main = colnames(dailyvar_01[,i]),ylab="Daily VaR",xaxt="n",xlab="Date",
+           plot.type="single",col = col)
+  axis.Date(1,at=pretty(index(data[,i]),15),
+            labels=format(pretty(index(data[,i]),15),format="%Y")) 
+  legend("bottomright", inset=c(0,0), y.intersp = 1, legend = colnames(dailyvar.combined),  lty = 1, bty = "n", col = col)
+
+  dev.off()
+}
+```
+
+
+<!-- 1% VaR -->
+
+<!-- ```{r, warning=FALSE} -->
+<!-- setwd("~/Dropbox/Research Seminar/R/Graphs/VaR/Daily/1 percent") -->
+
+<!-- data <- dailyvar_01 -->
+<!-- for (i in 1:stock.number) { -->
+<!--   png(paste0(i," - ",stock.name[i],".png"),width = 1400, height = 1000) -->
+
+<!--   par(cex=2) -->
+<!--   plot.zoo(data[,i], main = colnames(data[,i]),ylab="Daily 1% VaR",xaxt="n",xlab="Date",ylim = c(-1,0)) -->
+<!--   axis.Date(1,at=pretty(index(data[,i]),15), -->
+<!--             labels=format(pretty(index(data[,i]),15),format="%Y"))   -->
+<!--   dev.off() -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- 5% VaR -->
+
+<!-- ```{r, warning=FALSE} -->
+<!-- setwd("~/Dropbox/Research Seminar/R/Graphs/VaR/Daily/5 percent") -->
+
+<!-- data <- dailyvar_05 -->
+<!-- for (i in 1:stock.number) { -->
+<!--   png(paste0(i," - ",stock.name[i],".png"),width = 1400, height = 1000) -->
+
+<!--   par(cex=2) -->
+<!--   plot.zoo(data[,i], main = colnames(data[,i]),ylab="Daily 5% VaR",xaxt="n",xlab="Date",ylim = c(-1,0)) -->
+<!--   axis.Date(1,at=pretty(index(data[,i]),15), -->
+<!--             labels=format(pretty(index(data[,i]),15),format="%Y"))   -->
+<!--   dev.off() -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- 10% VaR -->
+
+<!-- ```{r, warning=FALSE} -->
+<!-- setwd("~/Dropbox/Research Seminar/R/Graphs/VaR/Daily/10 percent") -->
+
+<!-- data <- dailyvar_10 -->
+<!-- for (i in 1:stock.number) { -->
+<!--   png(paste0(i," - ",stock.name[i],".png"),width = 1400, height = 1000) -->
+
+<!--   par(cex=2) -->
+<!--   plot.zoo(data[,i], main = colnames(data[,i]),ylab="Daily 10% VaR",xaxt="n",xlab="Date",ylim = c(-1,0)) -->
+<!--   axis.Date(1,at=pretty(index(data[,i]),15), -->
+<!--             labels=format(pretty(index(data[,i]),15),format="%Y"))   -->
+<!--   dev.off() -->
+<!-- } -->
+<!-- ``` -->
+
+

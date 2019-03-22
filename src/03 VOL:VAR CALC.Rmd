@@ -1,0 +1,201 @@
+---
+title: "VOL VAR CALCULATION"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+rm(list =ls())
+```
+
+
+```{r, warning=FALSE, message=FALSE}
+library(xts)
+library(quantreg)
+library(rugarch)
+library(fBasics)
+library(quantmod)
+library(fitdistrplus)
+library(metRology)
+```
+
+Load data
+
+```{r}
+load("~/Dropbox/Research Seminar/R/R data/dailyreturn.Rda")
+# load("~/Dropbox/Research Seminar/R/R data/weeklyreturn.Rda")
+dailyreturn <- dailyreturn
+```
+
+Anpassungen f??r convergance
+
+```{r}
+# Angepasst bei subsample_2010
+#dailyreturn[,14][dailyreturn[,14]<(-0.4)] <- -0.4
+
+# Subsample 2015
+#dailyreturn[,14] <- 1 
+```
+
+
+```{r}
+stock.name <- names(dailyreturn)
+stock.number <- length(stock.name)
+stock.length <- dim(dailyreturn)[1]
+```
+
+# Calculate different Volatilities 
+
+Initalize data.frames
+
+```{r}
+dailyvol_e_GARCH <- dailyreturn
+dailyvol_e_GARCH[] <- NA
+
+dailyvol_gjr_GARCH <- dailyreturn
+dailyvol_gjr_GARCH[] <- NA
+```
+
+```{r, warning=FALSE}
+start <- 1
+end <- stock.number
+
+for (i in start:end) {
+  
+  mydata <- dailyreturn[,i]*100
+  
+  myvol_gjr <- mydata 
+  myvol_gjr[] <- NA
+  
+  NonNAindex <- which(!is.na(mydata))
+  firstNonNA <- min(NonNAindex)
+  length <- dim(mydata)[1]
+
+  spec_gjr <- ugarchspec(mean.model=list(armaOrder=c(1,1), include.mean=T),
+                   variance.model=list(model='gjrGARCH', garchOrder=c(1,1), distribution.model="std"))
+    
+  # Specifiy model
+  model <- ugarchfit(spec=spec_gjr,data=mydata[firstNonNA:length])
+  
+  # Get conditional standard deviation.
+  myvol_gjr[firstNonNA:length] <- sigma(model)
+  dailyvol_gjr_GARCH[,i] <- myvol_gjr
+  
+  start <- start+1
+  print(paste0("Progress: ",round((start-1)/end*100,2), " %"))
+}
+```
+
+```{r}
+plot.zoo(is.na(dailyreturn[,12]))
+plot.zoo(dailyreturn[,14])
+
+
+plot.zoo(dailyvol_gjr_GARCH[,14])
+#plot.zoo(dailyvar_01[,21])
+```
+
+
+
+Save
+
+```{r}
+#save(dailyvol_e_GARCH,file="../R data/dailyvol_e_GARCH.Rda")
+save(dailyvol_gjr_GARCH,file="../R data/dailyvol_gjr_GARCH.Rda")
+```
+
+# Calculate different VaRs
+# gjr_GARCH
+
+```{r}
+load("../R data/dailyvol_gjr_GARCH.Rda")
+```
+
+```{r,warning=FALSE}
+dailyvar_01 <- dailyreturn
+dailyvar_01[] <- NA
+```
+
+```{r,warning=FALSE}
+
+shape <- matrix(nrow = 33,ncol=3)
+colnames(shape) <- c("df","mean","sd")
+i <- 1
+for (i in 1:stock.number) {
+  mydata <- dailyreturn[,i]*100
+  mean <- mean(mydata,na.rm = TRUE)
+  sd <- sd(mydata,na.rm = TRUE)
+  
+  myvol <- dailyvol_gjr_GARCH[,i]
+  
+  myvar <- mydata 
+  myvar[] <- NA
+  
+  NonNAindex <- which(!is.na(mydata))
+  firstNonNA <- min(NonNAindex)
+  length <- dim(mydata)[1]
+  
+#   dist_data <- as.vector(mydata[firstNonNA:length])
+# 
+#  dist_fit <- coef(fitdist(dist_data, "t", start= c(3, mean(dist_data))))
+# 
+#   dist_fit <- coef(fitdist(dist_data,"t.scaled",start=list(df=3,mean=mean(dist_data),sd=sd(dist_data))))
+#   shape[i,1:3] <- dist_fit[1:3]
+# 
+#   myvar[] <- NA
+# 
+# 
+# #M??sste noch angepasst und behoben werden  qt(0.01,dist_fit[1]) flasch
+# 
+#   myvar[firstNonNA:length] <- mean(mydata[firstNonNA:length]) +
+#     qt.scaled(0.01,df=dist_fit[1],mean=dist_fit[2],sd=dist_fit[3])*myvol[firstNonNA:length]
+# 
+#   myvar <- myvar/100
+#   myvar <- (1-exp(myvar))
+#   dailyvar_01[,i] <- -myvar
+# 
+#   myvar[] <- NA
+# 
+# #Standard
+  myvar[firstNonNA:length] <- mean(mydata[firstNonNA:length]) + qnorm(0.01,mean=mean,sd=sd)*myvol[firstNonNA:length]
+  myvar <- myvar/100
+  myvar <- (1-exp(myvar))
+  dailyvar_01[,i] <- -myvar
+
+  myvar[] <- NA
+#   
+  print(paste0("Progress: ",round(i/stock.number*100,2), " %"))
+}
+
+```
+
+Cap VaR bei 100
+
+```{r}
+dailyvar_01[dailyvar_01>100] <- 100
+```
+
+
+```{r}
+#save(dailyvar_01_neu,file="../R data/dailyvar_01_neu.Rda")
+save(dailyvar_01,file="../R data/dailyvar_01.Rda")
+```
+
+
+Save weekly
+
+```{r}
+# weeklyvar_01 <- dailyvar_01
+# weeklyvar_05 <- dailyvar_05
+# weeklyvar_10 <- dailyvar_10
+```
+
+
+```{r}
+# save(weeklyvar_01,file="../R data/weeklyvar_01.Rda")
+# save(weeklyvar_05,file="../R data/weeklyvar_05.Rda")
+# save(weeklyvar_10,file="../R data/weeklyvar_10.Rda")
+```
+

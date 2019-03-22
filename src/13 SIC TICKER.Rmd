@@ -1,0 +1,53 @@
+---
+title: "R Notebook"
+---
+
+```{r}
+rm(list =ls())
+```
+
+```{r}
+library(readr)
+library(plyr)
+library(stringi)
+
+SIC <- read_csv("~/Dropbox/Research Seminar/Data/SIC_2017_12.csv",
+                        col_types = cols(PERMCO = col_skip(),PERMNO = col_skip(), date = col_skip()))
+```
+
+
+```{r}
+SIC$SIC <- substr(SIC$SICCD, 1, 2)
+
+SIC$Industry <- revalue(SIC$SIC,
+               c("60"="Commercial Bank",
+                 "62"="Investment Bank",
+                 "63"="Insurance",
+                 "73"="Services",
+                 "67"="Commercial Bank",
+                 "99"="Insurance"))
+
+investment_banks <- c("BANK OF AMERICA CORP","JPMORGAN CHASE & CO" ,"CITIGROUP INC","MORGAN STANLEY DEAN WITTER & CO","GOLDMAN SACHS GROUP INC","WELLS FARGO & CO NEW")
+
+SIC$Industry[SIC$COMNAM %in% investment_banks] <- "Investment Bank"
+
+stock.drop <- stri_trans_toupper(c("C N O Financial Group Inc","C I T Group Inc New","Ally Financial Inc","Voya Financial Inc","Brighthouse Financial Inc"))
+
+stock.name <- SIC$COMNAM[!SIC$COMNAM %in% stock.drop]
+SIC <- SIC[SIC$COMNAM %in% stock.name,]
+
+SIC <- SIC[,c(3,2,5)]
+SIC[33,1] <- "S&P 500"
+SIC[33,2:3] <- NA
+```
+
+```{r}
+table(SIC$Industry)
+```
+
+```{r}
+save(SIC,file="../R data/SIC.Rda")
+```
+
+
+

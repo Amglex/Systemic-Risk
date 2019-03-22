@@ -1,0 +1,91 @@
+---
+title: "VOL CHARTS"
+---
+
+```{r}
+rm(list =ls())
+```
+
+```{r, warning=FALSE, message=FALSE}
+library(xts)
+library(quantreg)
+```
+
+Load data
+
+```{r}
+load("~/Dropbox/Research Seminar/R/R data/dailyvol_e_GARCH.Rda")
+load("~/Dropbox/Research Seminar/R/R data/dailyvol_gjr_GARCH.Rda")
+```
+
+```{r}
+stock.name <- names(dailyvol_e_GARCH)
+stock.number <- length(stock.name)
+stock.length <- dim(dailyvol_e_GARCH)[1]
+```
+
+```{r, warning=FALSE}
+setwd("~/Dropbox/Research Seminar/R/Graphs/Volatility/Daily/Combined")
+
+dailyvol.combined <- dailyvol_e_GARCH[,1:2]
+dailyvol.combined[] <- NA
+colnames(dailyvol.combined) <- c("e-GARCH","gjr-GARCH")
+
+data <- dailyvol_gjr_GARCH
+for (i in 1:3) {
+  png(paste0(i," - ",stock.name[i],".png"),width = 1400, height = 1000)
+  
+  dailyvol.combined[] <- NA
+  dailyvol.combined[,1] <- dailyvol_gjr_GARCH[,i]
+  dailyvol.combined[,2] <- dailyvol_e_GARCH[,i]
+  
+  
+  par(cex=2)
+  plot.zoo(dailyvol.combined, main = colnames(dailyvol_e_GARCH[,i]),ylab="Daily Volatility",xaxt="n",xlab="Date",
+           plot.type="single",col = c("red","blue"))
+  axis.Date(1,at=pretty(index(data[,i]),15),
+            labels=format(pretty(index(data[,i]),15),format="%Y")) 
+  legend("topright", inset=c(0,0), y.intersp = 1, legend = c("gjr-GARCH", "e-GARCH"),  lty = 1, bty = "n", col = c("red","blue"))
+
+  dev.off()
+}
+```
+
+
+<!-- e GARCH -->
+
+<!-- ```{r, warning=FALSE} -->
+<!-- setwd("~/Dropbox/Research Seminar/R/Graphs/Volatility/Daily/e Garch") -->
+
+<!-- data <- dailyvol_e_GARCH -->
+<!-- for (i in 1:stock.number) { -->
+<!--   png(paste0(i," - ",stock.name[i],".png"),width = 1400, height = 1000) -->
+
+<!--   par(cex=2) -->
+<!--   plot.zoo(data[,i], main = colnames(data[,i]),ylab="Daily Volatility (e-GARCH)",xaxt="n",xlab="Date",ylim = c(0,1)) -->
+<!--   axis.Date(1,at=pretty(index(data[,i]),15), -->
+<!--             labels=format(pretty(index(data[,i]),15),format="%Y"))   -->
+<!--   dev.off() -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- gjr GARCH -->
+
+<!-- ```{r, warning=FALSE} -->
+<!-- setwd("~/Dropbox/Research Seminar/R/Graphs/Volatility/Daily/gjr Garch") -->
+
+<!-- data <- dailyvol_gjr_GARCH/100 -->
+<!-- for (i in 1:stock.number) { -->
+<!--   png(paste0(i," - ",stock.name[i],".png"),width = 1400, height = 1000) -->
+
+<!--   par(cex=2) -->
+<!--   plot.zoo(data[,i], main = colnames(data[,i]),ylab="Daily Volatility (gjr-GARCH)",xaxt="n",xlab="Date",ylim = c(0,1)) -->
+<!--   axis.Date(1,at=pretty(index(data[,i]),15), -->
+<!--             labels=format(pretty(index(data[,i]),15),format="%Y"))   -->
+<!--   dev.off() -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- Combined -->
+
+

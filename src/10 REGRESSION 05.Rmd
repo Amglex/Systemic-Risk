@@ -1,0 +1,140 @@
+---
+title: "Regression"
+---
+
+```{r}
+rm(list =ls())
+```
+
+```{r}
+load("~/Dropbox/Research Seminar/R/R data/result_05.Rda")
+```
+
+```{r}
+regression1 <- lm(SRISK_Mrd_USD ~ Marketcap_Mrd_USD, result_05_reg)
+summary(regression1)
+```
+
+```{r}
+result_05_reg
+regression1 <- lm(SRISK_Mrd_USD ~ VaR_Diff_Mrd_USD , result_05_reg)
+summary(regression1)
+```
+
+
+```{r}
+regression1 <- lm(SRISK_Mrd_USD ~ CoVaR_Mrd_USD, result_05_reg)
+summary(regression1)
+```
+
+```{r}
+regression1 <- lm(SRISK_Mrd_USD ~  LRMES + Beta + Cor + Vol + Lvg, result_05_reg)
+summary(regression1)
+```
+
+```{r}
+regression1 <- lm(SRISK_Mrd_USD ~ CoVaR_Mrd_USD + LRMES + Beta + Cor + Vol + Lvg, result_05_reg)
+summary(regression1)
+```
+
+
+```{r}
+result_05_reg[order(result_05_reg$CoVaR_Mrd_USD),c(1,13)]
+```
+
+
+
+```{r,message=FALSE}
+attach(result_05_reg)
+names <- row.names(result_05_reg)
+
+setwd("~/Dropbox/Research Seminar/R/Graphs/Ergebnisse")
+png("Scatter_SRISK_CoVaR_05.png",width = 1400, height = 1000, res=110)
+
+  
+plot(CoVaR_Mrd_USD,SRISK_Mrd_USD,ylab="SRISK in Mrd.",xlab="CoVar in Mrd.",ylim=c(-45,0),xlim=c(-35,0))
+text(CoVaR_Mrd_USD, SRISK_Mrd_USD,labels=names, cex=1 ,pos=4, offset = 0.7)
+abline(lm(SRISK_Mrd_USD[CoVaR_Mrd_USD>-4] ~ CoVaR_Mrd_USD[CoVaR_Mrd_USD>-4]),lty=2)
+abline(lm(SRISK_Mrd_USD ~ CoVaR_Mrd_USD),lty=1)
+title("Scatterplot of SRISK and CoVaR")
+legend(-8, -40, legend=c("Complete sample", "Without outliers (CoVar < -4"),
+       , lty=1:2, cex=0.8)
+
+dev.off()
+```
+
+```{r}
+names(result_05_reg)
+```
+
+Is there a connection between VaR Diff and VaR sensibility?
+===========================================================
+
+A:
+Yes there is a very clear connection. A linear regression and the scatterplot shows that institutions with a higher VaR Diff in % tend to have a higher VaR Sensibility.
+
+
+```{r,message=FALSE}
+i <- 5
+
+attach(result_05_reg)
+names <- row.names(result_05_reg[VaR_Diff<(-i),])
+
+
+
+
+plot(VaR_Diff,Coefficient_05,ylab="VaR Sensibility",xlab="VaR Diff. in %") #,ylim=c(-45,0),xlim=c(-8,0))
+text(VaR_Diff[VaR_Diff<(-i)],Coefficient_05[VaR_Diff<(-i)],labels=names, cex=0.75 ,pos=4, offset = 0.7)
+#abline(lm(SRISK_Mrd_USD[CoVaR_Mrd_USD>-4] ~ CoVaR_Mrd_USD[CoVaR_Mrd_USD>-4]),lty=2)
+abline(lm(Coefficient_05 ~ VaR_Diff),lty=1)
+title("Scatterplot of SRISK and CoVaR")
+legend(-8, -40, legend=c("Complete sample", "Without outliers (CoVar < -4"),
+       , lty=1:2, cex=0.8)
+
+reg1 <- summary(lm(Coefficient_05 ~ VaR_Diff))
+plot(residuals(reg1))
+
+summary(lm(SRISK_Mrd_USD ~ VaR_Diff_Mrd_USD))
+```
+
+```{r}
+attach(result_05_reg)
+i <- -2.5
+
+names <- row.names(result_05_reg[VaR_Diff_Mrd_USD<(i),])
+
+plot(CoVaR_Mrd_USD,SRISK_Mrd_USD,ylab="SRISK in Mrd.",xlab="VaR Diff. in Mrd.")
+#text(VaR_Diff_Mrd_USD[VaR_Diff_Mrd_USD<(i)], SRISK_Mrd_USD[VaR_Diff_Mrd_USD<(i)],labels=names, cex=1 ,pos=4, offset = 0.7)
+```
+
+
+```{r}
+attach(result_05_reg)
+names <- row.names(result_05_reg)
+
+plot(Coefficient_01,SRISK_Mrd_USD,ylab="SRISK in Mrd.",xlab="1% Qreg coefficient",ylim=c(-40,0))
+text(Coefficient_01, SRISK_Mrd_USD,labels=names, cex=1 ,pos=4, offset = 0.7)
+```
+
+FRAGE:
+Was erkl??rt den coefficient?
+============================
+
+The regression shows that the coefficient is at least partly correlated to the Beta and the leverage of the institutaions.
+Additionally, it is also correlated to the 5% VaR quantile. ????
+
+```{r}
+regression1 <- lm(Coefficient_05  ~  VaR_quantil_05 + Beta + Lvg, result_05_reg)
+summary(regression1)
+```
+
+FRAGE:
+Which variables influence the 5% VaR quantile?
+============================
+
+Financial Institutions with a higher beta and a higher leverage tend to have higher 5% VaR quntiles. Both Coefficients are significant on the 1% level.
+
+```{r}
+regression1 <- lm(VaR_quantil_05  ~  Beta  + LRMES + Cor + Vol, result_05_reg)
+summary(regression1)
+```

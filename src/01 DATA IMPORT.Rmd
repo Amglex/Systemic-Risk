@@ -1,0 +1,254 @@
+---
+title: "Data Import"
+---
+
+This Skript imports both the stock data from crisp as well as the index data from crisp.
+Aditionally, the data is reshaped and cleaned.
+Lastly, the datasets are saved.
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readr)
+library(tidyr)
+library(reshape2)
+library(xts)
+library(stringi)
+```
+
+```{r}
+rm(list=ls())
+```
+
+
+Import data
+
+```{r, echo=FALSE, warning=FALSE}
+
+data.stock <- read_csv("../../Data/Stock_data_2017_12.csv",col_types = cols(date = col_date(format = "%d/%m/%Y")))
+data.index <- read_csv("../../Data/Index_data_2017_12.csv", col_types = cols(caldt = col_date(format = "%d/%m/%Y")))
+```
+
+
+# Creating Adjusted Price, Shares Outstanding and Market Cap
+
+Adjusting Price
+```{r}
+data.stock$"ADJUSTED CLOSING PRICE" <- data.stock$PRC / data.stock$CFACPR
+```
+
+Adjusting Shares outstanding
+```{r}
+data.stock$"ADJUSTED SHARES OUTSTANDING" <- data.stock$SHROUT / data.stock$CFACSHR * 1000
+```
+
+Market Cap
+```{r}
+data.stock$"MARKET CAP" <- data.stock$`ADJUSTED CLOSING PRICE` * data.stock$`ADJUSTED SHARES OUTSTANDING`
+```
+
+
+# Cleaning Data
+
+```{r}
+# Deleting all rows with missing prices
+data.stock <- data.stock[!is.na(data.stock$`ADJUSTED CLOSING PRICE`),]
+
+# Deleting 1989
+data.stock <- data.stock[!(data.stock$date=="1989-12-29"),]
+
+
+# Deleting double instances 
+data.stock <- data.stock[!(data.stock$PERMNO==75519),]
+data.stock <- data.stock[!(data.stock$PERMNO==75044),]
+
+# Changing PERCO of Wells Fargo because it was aquired in 89
+data.stock <- data.stock[!(data.stock$PERMCO==21902),]
+```
+
+```{r}
+stock.number <- length(unique(data.stock$PERMCO))
+```
+
+
+Create Index
+
+```{r}
+data.index <- data.index[c("caldt","spindx","sprtrn","usdval")]
+colnames(data.index) <- c("date","Price","Return","Market Cap")
+```
+
+# Price
+
+Reorder data and creat subset for reformatting from long to wide
+
+```{r}
+dailyprice <- data.stock[c("date","PERMCO","ADJUSTED CLOSING PRICE")]
+```
+
+Long to wide
+```{r}
+dailyprice <- dcast(dailyprice, date ~ PERMCO,fun.aggregate = NULL,value.var = "ADJUSTED CLOSING PRICE")
+
+dailyprice[-1] <- abs(dailyprice[-1])
+
+dailyprice[,length(dailyprice)+1] <- data.index[2]
+
+date <- as.Date(dailyprice[,1],"%d/%m/%Y")
+dailyprice <- as.xts(dailyprice[-1],order.by=date)
+```
+
+
+
+# Return
+
+Reorder data and creat subset for reformatting from long to wide
+
+```{r}
+dailyreturn <- data.stock[c("date","PERMCO","RET")]
+```
+
+Long to wide
+```{r}
+dailyreturn <- dcast(dailyreturn, date ~ PERMCO,fun.aggregate = NULL,value.var = "RET")
+dailyreturn[,length(dailyreturn)+1] <- data.index[3]
+dailyreturn <- as.xts(dailyreturn[-1],order.by=date)
+
+```
+
+Simple to log return
+
+```{r}
+dailyreturn[] <- log(dailyreturn[]+1)
+```
+
+# Market Cap
+
+```{r}
+dailymarketcap <- data.stock[c("date","PERMCO","MARKET CAP")]
+```
+
+Long to wide
+
+```{r}
+dailymarketcap <- dcast(dailymarketcap, date ~ PERMCO,fun.aggregate = NULL,value.var = "MARKET CAP")
+
+dailymarketcap[-1] <- abs(dailymarketcap[-1])
+
+dailymarketcap[,length(dailymarketcap)+1] <- data.index[4]*1000
+
+date <- as.Date(dailymarketcap[,1],"%d/%m/%Y")
+dailymarketcap <- as.xts(dailymarketcap[-1],order.by=date)
+```
+
+Find company names
+
+```{r}
+stock.name <- as.vector(t(data.stock[data.stock$date=="2017-12-29",][4]))
+
+# Muss h??ndisch angepasst werden!
+stock.name[23] <- "MORGAN STANLEY GROUP INC" # Abfuck in der Datenbank
+
+stock.name[length(stock.name)+1] <- "S&P 500" # Index
+
+stock.name <- stri_trans_totitle(stock.name)
+
+colnames(dailyprice) <- stock.name
+colnames(dailyreturn) <- stock.name
+colnames(dailymarketcap) <- stock.name
+
+stock.number <- length(stock.name)
+```
+
+# Clean Data
+
+Drop some companies
+
+```{r}
+stock.drop <- c("C N O Financial Group Inc","C I T Group Inc New","Ally Financial Inc","Voya Financial Inc","Brighthouse Financial Inc")
+
+stock.name <- names(dailyreturn)[!names(dailyreturn) %in% stock.drop]
+
+dailyprice <- dailyprice[,stock.name]
+dailyreturn <- dailyreturn[,stock.name]
+dailymarketcap <- dailymarketcap[,stock.name]
+```
+
+Dropped for the following reason
+
+C N O Financial Group Inc - Bancrupt druing 2003/4
+C I T Group Inc New - Bancrupt druing 20010
+Ally Financial Inc- Data start 2014
+Voya Financial Inc - Data start 2014
+Brighthouse Financial Inc - Data start 2017
+
+
+Clean data
+
+```{r}
+# Fill in 1 missing value in BOK
+dailyreturn["1991-12-17","B O K Financial Corp" ] <- 0
+
+dailyreturn["2001-09-17/2001-10-05","B G C Partners Inc"] <- 0
+```
+
+weekly returns
+
+```{r}
+weeklyreturn <- apply.weekly(dailyreturn,colSums)
+monthlyreturn <- apply.monthly(dailyreturn,colSums)
+```
+
+Sort data
+
+```{r}
+dailyprice <- dailyprice[,order(names(dailyprice))]
+dailyreturn <- dailyreturn[,order(names(dailyreturn))]
+weeklyreturn <- weeklyreturn[,order(names(weeklyreturn))]
+dailymarketcap <- dailymarketcap[,order(names(dailymarketcap))]
+```
+
+
+# Number of Obs
+
+```{r}
+observations <- data.frame(matrix(nrow=7,ncol=1),row.names = c("Daily","Weekly","Monthly","2000-","2004-","2010-","2015-"))
+
+observations[1,1] <- length(dailyreturn)
+observations[2,1] <- length(weeklyreturn)
+observations[3,1] <- length(monthlyreturn)
+observations[4,1] <- length(dailyreturn["2000/"])
+observations[5,1] <- length(dailyreturn["2004/"])
+observations[6,1] <- length(dailyreturn["2010/"])
+observations[7,1] <- length(dailyreturn["2015/"])
+
+```
+
+```{r}
+colnames(dailyreturn)
+```
+
+```{r}
+dailyreturn <- dailyreturn
+colnames(dailyreturn)[19] <- "J.P. Morgan Chase & Co"
+colnames(dailyreturn)[5] <- "BGC Partners Inc"
+colnames(dailyreturn)[6] <- "BOK Financial Corp"
+colnames(dailyreturn)[13] <- "Fulton Financial Corp" 
+colnames(dailyreturn)[21] <- "MBIA Inc" 
+colnames(dailyreturn)[27] <- "S V B Financial Group" 
+colnames(dailyreturn)[29] <- "UMB Financial Corp"
+colnames(dailyreturn)
+
+```
+
+Save data
+
+```{r}
+#save(dailyprice,file="../R data/dailyprice.Rda")
+save(dailyreturn,file="../R data/dailyreturn.Rda")
+#save(weeklyreturn,file="../R data/weeklyreturn.Rda")
+#save(dailymarketcap,file="../R data/dailymarketcap.Rda")
+```

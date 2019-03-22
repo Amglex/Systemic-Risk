@@ -1,0 +1,64 @@
+---
+title: "VOL VAR CALCULATION"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+rm(list =ls())
+```
+
+
+```{r, warning=FALSE, message=FALSE}
+library(xts)
+library(quantreg)
+library(rugarch)
+library(fBasics)
+library(quantmod)
+```
+
+Load data
+
+```{r}
+load("~/Dropbox/Research Seminar/R/R data/dailyreturn.Rda")
+# load("~/Dropbox/Research Seminar/R/R data/weeklyreturn.Rda")
+```
+
+```{r}
+#dailyreturn <- weeklyreturn
+
+stock.name <- names(dailyreturn)
+stock.number <- length(stock.name)
+stock.length <- dim(dailyreturn)[1]
+```
+
+# Calculate different Volatilities 
+
+
+```{r,warning=FALSE}
+
+i <- 1
+g = dailyreturn[,i]
+m <- mean(g,na.rm=TRUE)
+std <- sqrt(var(g,na.rm=TRUE))
+
+shape[i,]    
+
+hist(dailyreturn[,i],density=20,probability = TRUE,breaks=100,main = stock.name[i],ylim=c(0,0.01))
+curve(dt.scaled(x, df=shape[i,1],mean=shape[i,2],sd=shape[i,3]), add=TRUE, col='red' )
+curve(dnorm(x, mean=m, sd=std), 
+          col="darkblue", lwd=2, add=TRUE, yaxt="n")
+# 
+# dt.scaled(0.01, df=fit2[1],mean=fit2[2],sd=fit2[3])
+# 
+# qt(0.05,fit2[1])
+# qnorm(0.05)
+
+```
+
+
+
+
+

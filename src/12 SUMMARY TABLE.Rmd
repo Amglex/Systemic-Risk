@@ -1,0 +1,306 @@
+---
+title: "SUMMARY TABLE"
+---
+
+Only Libraries
+```{r, warning=FALSE, message=FALSE}
+library(xtable)
+library(xts) 
+library(gridExtra)
+library(readr)
+library(fBasics)
+library(PerformanceAnalytics)
+```
+
+```{r}
+rm(list =ls())
+```
+
+# Load data
+
+```{r}
+load("~/Dropbox/Research Seminar/R/R data/dailyreturn.Rda")
+load("~/Dropbox/Research Seminar/R/R data/dailyvar_01.Rda")
+load("~/Dropbox/Research Seminar/R/R data/SIC.Rda")
+load("~/Dropbox/Research Seminar/R/R data/marketcap.Rda")
+
+
+stock.name <- colnames(dailyreturn)
+stock.number <- length(stock.name)
+stock.length <- dim(dailyreturn)[1]
+```
+
+
+# SRISK Table
+
+```{r,message=FALSE}
+#load("~/Dropbox/Research Seminar/R/R data/SRISK.Rda")
+SRISK <- read_csv("~/Dropbox/Research Seminar/Data/SRISK_2017_12.csv")
+```
+
+```{r}
+align <- c("rlrrrrrrrr")
+digits <- c(0,0,2,0,0,2,2,2,2,2)
+# display <- c(,,,,)
+
+print(
+xtable(SRISK, digits = digits,align = align,  caption = c("SRISK Table as of December 29th 2017","SRISK"))
+,include.rownames=FALSE)
+```
+
+
+# Summary of institutions
+
+```{r}
+row_name <- c("Institution","Ticker","Industry","Marketcap in $ bn (2017-12-29)","Start of sample","End of Sample")
+Institutions <- data.frame(matrix(nrow = stock.number, ncol = 6), stringsAsFactors = FALSE)
+rownames(Institutions) <- stock.name
+colnames(Institutions) <- row_name
+```
+
+
+```{r}
+SIC <- SIC[order(SIC$COMNAM),]
+
+Institutions[,1] <- stock.name
+Institutions[,2] <- SIC$TICKER
+Institutions[,3] <- SIC$Industry
+Institutions[,4] <- marketcap
+
+for(i in 1:stock.number) {
+
+  NonNAindex <- which(!is.na(dailyreturn[,i]))
+  firstNonNA <- min(NonNAindex)
+  index <- index(dailyreturn[firstNonNA,i])
+  
+  Institutions[i,5] <- index
+}
+
+Institutions[,5] <- as.Date(Institutions[,5])
+Institutions[,5] <- as.character(Institutions[,5])
+
+Institutions[,6] <- "2017-12-29"
+
+```
+
+```{r}
+#digits = digits,align = align,
+print(
+xtable(Institutions, caption = c("Overview of included institutions","SRISK"))
+,include.rownames=FALSE)
+```
+
+
+# Simple returns
+
+Prepare result1 Matrix
+
+```{r}
+row_name <- c("Yearly mean return","Annualized volatility","Min","1% quantile","5% quantile","Max","Skewness","Kurtosis")
+result1 <- data.frame(matrix(nrow = stock.number, ncol = 8), stringsAsFactors = FALSE)
+rownames(result1) <- stock.name
+colnames(result1) <- row_name
+```
+
+```{r}
+
+dailyreturn_simple <- exp(dailyreturn)-1
+
+data1 <- dailyreturn_simple
+
+for(i in 1:stock.number) {
+NonNAindex <- which(!is.na(data1[,i]))
+firstNonNA <- min(NonNAindex)
+index <- index(data1[firstNonNA,i])
+
+  result1[i,1] <- Return.annualized(data1[,i], scale = 252, geometric = TRUE)*100
+  result1[i,2] <- sd(log(data1[,i]+1), na.rm=TRUE)*sqrt(252)*100
+  result1[i,3] <- min(data1[,i], na.rm=TRUE)*100
+  result1[i,4] <- quantile(data1[,i], probs = 0.01, na.rm=TRUE)*100
+  result1[i,5] <- quantile(data1[,i], probs = 0.05, na.rm=TRUE)*100
+  result1[i,6] <- max(data1[,i], na.rm=TRUE)*100
+  result1[i,7] <- skewness(data1[,i], na.rm=TRUE)
+  result1[i,8] <- kurtosis(data1[,i], na.rm=TRUE, method = "excess")
+}
+```
+
+
+```{r}
+digits <- c(0,0,2,0,0,2,2,2,2,2)
+# display <- c(,,,,)
+xtable(result1,  caption = c("Summary statistics for simple returns","Summary Simple Returns"))
+```
+
+# Log returns
+
+Load data
+
+```{r}
+load("~/Dropbox/Research Seminar/R/R data/dailyreturn.Rda")
+
+stock.name <- colnames(dailyreturn)
+stock.number <- length(stock.name)
+stock.length <- dim(dailyreturn)[1]
+```
+
+Prepare result1 Matrix
+
+```{r}
+row_name <- c("Annualized mean","Annualized std. dev.","Min","1% quantile","5% quantile","Max","Skewness","Kurtosis")
+result12 <- data.frame(matrix(nrow = stock.number, ncol = 8), stringsAsFactors = FALSE)
+rownames(result12) <- stock.name
+colnames(result12) <- row_name
+```
+
+Mean
+
+```{r}
+data <- dailyreturn
+
+for(i in 1:stock.number) {
+  result12[i,1] <- mean(data[,i], na.rm=TRUE)*252*100
+  result12[i,2] <- sd(data[,i], na.rm=TRUE)
+  result12[i,2] <- sd(data[,i], na.rm=TRUE)*sqrt(252) *100
+  result12[i,3] <- min(data[,i], na.rm=TRUE)*100
+  result12[i,4] <- quantile(data[,i], probs = 0.01, na.rm=TRUE)*100
+  result12[i,5] <- quantile(data[,i], probs = 0.05, na.rm=TRUE)*100
+  result12[i,6] <- max(data[,i], na.rm=TRUE)*100
+  result12[i,7] <- skewness(data[,i], na.rm=TRUE)
+  result12[i,8] <- kurtosis(data[,i], na.rm=TRUE, method = "excess")
+}
+```
+
+
+
+```{r}
+
+# display <- c(,,,,)
+xtable(result12,  caption = c("Summary statistics for log returns","Summary log Returns"))
+```
+
+# Volatility
+
+Load data
+
+```{r}
+load("~/Dropbox/Research Seminar/R/R data/dailyvol_gjr_garch.Rda")
+
+stock.name <- colnames(dailyvar_01)
+stock.number <- length(stock.name)
+stock.length <- dim(dailyvar_01)[1]
+```
+
+Prepare result1 Matrix
+
+```{r}
+row_name <- c("Mean","Std. dev.","Min","1% quantile","5% quantile","50% quantil","Max")
+result1.var <- data.frame(matrix(nrow = stock.number, ncol = 7), stringsAsFactors = FALSE)
+rownames(result1.var) <- stock.name
+colnames(result1.var) <- row_name
+```
+
+Mean
+
+```{r}
+data <- dailyvol_gjr_GARCH
+
+for(i in 1:stock.number) {
+  result1.var[i,1] <- mean(data[,i], na.rm=TRUE)*100
+  result1.var[i,2] <- sd(data[,i], na.rm=TRUE)*100
+  result1.var[i,3] <- min(data[,i], na.rm=TRUE)*100
+  result1.var[i,4] <- quantile(data[,i], probs = 0.01, na.rm=TRUE)*100
+  result1.var[i,5] <- quantile(data[,i], probs = 0.05, na.rm=TRUE)*100
+  result1.var[i,6] <- quantile(data[,i], probs = 0.5, na.rm=TRUE)*100
+  result1.var[i,7] <- max(data[,i], na.rm=TRUE)*100
+}
+```
+
+```{r}
+xtable(result1.var,  caption = c("Summary statistics for conditional volatility","Summary Volatility"))
+```
+
+
+
+# VaR
+
+Load data
+
+```{r}
+load("~/Dropbox/Research Seminar/R/R data/dailyvar_01.Rda")
+
+stock.name <- colnames(dailyvar_01)
+stock.number <- length(stock.name)
+stock.length <- dim(dailyvar_01)[1]
+```
+
+Prepare result1 Matrix
+
+```{r}
+row_name <- c("Mean","Std. dev.","Min","1% quantile","5% quantile","50% quantil","Max")
+result1.var <- data.frame(matrix(nrow = stock.number, ncol = 7), stringsAsFactors = FALSE)
+rownames(result1.var) <- stock.name
+colnames(result1.var) <- row_name
+```
+
+Mean
+
+```{r}
+data <- dailyvar_01
+
+for(i in 1:stock.number) {
+  result1.var[i,1] <- mean(data[,i], na.rm=TRUE)*100
+  result1.var[i,2] <- sd(data[,i], na.rm=TRUE)*100
+  result1.var[i,3] <- min(data[,i], na.rm=TRUE)*100
+  result1.var[i,4] <- quantile(data[,i], probs = 0.01, na.rm=TRUE)*100
+  result1.var[i,5] <- quantile(data[,i], probs = 0.05, na.rm=TRUE)*100
+  result1.var[i,6] <- quantile(data[,i], probs = 0.5, na.rm=TRUE)*100
+  result1.var[i,7] <- max(data[,i], na.rm=TRUE)*100
+}
+```
+
+```{r}
+xtable(result1.var,  caption = c("Summary statistics for 1% VaR","Summary VaR"))
+```
+
+# Quantreg Table
+
+```{r,message=FALSE}
+load("~/Dropbox/Research Seminar/R/R data/quantreg_01_table.Rda")
+```
+
+```{r}
+align <- c("rrrrrrrrr")
+digits <- c(0,0,2,0,0,2,2,2,2,2)
+# display <- c(,,,,)
+
+print(
+xtable(quantreg_01,  caption = c("SRISK Table as of December 29th 2017","SRISK")))
+```
+
+
+# result1
+
+Load data
+
+```{r}
+load("~/Dropbox/Research Seminar/R/Result data/result_daily.Rda")
+```
+
+```{r}
+# result_01_table <- result_01[,c(3,9:15)]
+# 
+# result_01_table <- result_01_table[order(result_01_table$SRISK),]
+# 
+# names(result_01_table) <- c("SRISK","MC","1% VaR q","50% VaR q","VaR Diff %","VaR Diff $","1% s","CoVar $")
+# names(result_01)
+```
+
+Prepare result Matrix
+
+```{r}
+
+result_daily_new <- result_daily[,-c(1,2,4:8,11,15,16)]
+
+
+xtable(result_daily_new,  caption = c("result Table","result Table"))
+```

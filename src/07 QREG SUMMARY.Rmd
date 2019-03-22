@@ -1,0 +1,130 @@
+---
+title: "QREG SUMMARY"
+---
+
+```{r}
+rm(list =ls())
+```
+
+```{r, warning=FALSE, message=FALSE}
+library(xts)
+library(quantreg)
+```
+
+Load data
+
+```{r}
+load("~/Dropbox/Research Seminar/R/R data/dailyvar_01.Rda")
+```
+
+```{r}
+stock.name <- names(dailyvar_01)
+stock.number <- length(stock.name)
+stock.length <- dim(dailyvar_01)[1]
+index.number <- which(colnames(dailyvar_01)=="S&P 500")
+```
+
+# 1% VaR
+
+```{r}
+dailyvar <- dailyvar_01[,]*100
+```
+
+
+Prepare result matrix
+
+```{r}
+row_name <- stock.name
+col_name <- c("1% sensitivity","5% sensitivity","10% sensitivity","50% sensitivity","90% sensitivity","95% sensitivity","99% sensitivity")
+quantreg_01 <- data.frame(matrix(nrow = stock.number, ncol = 7), stringsAsFactors = FALSE)
+rownames(quantreg_01) <- row_name
+colnames(quantreg_01) <- col_name
+```
+
+Fill matrix
+```{r}
+
+mydata <- dailyvar
+
+numbers <- c(1:stock.number)
+numbers <- numbers[-index.number]
+#numbers <- numbers[-c(index.number,14,13)]
+
+for (i in numbers) {
+
+  Index <- as.vector(mydata[,index.number])
+  FI <- as.vector(mydata[,i])
+
+  quantreg.all <- rq(Index ~ FI, tau = 0.01,na.action=na.omit)
+  quantreg_01[i,1] <- quantreg.all$coefficients[2]
+  
+  quantreg.all <- rq(Index ~ FI, tau = 0.05,na.action=na.omit)
+  quantreg_01[i,2] <- quantreg.all$coefficients[2]
+  
+  quantreg.all <- rq(Index ~ FI, tau = 0.1,na.action=na.omit)
+  quantreg_01[i,3] <- quantreg.all$coefficients[2]
+  
+  quantreg.all <- rq(Index ~ FI, tau = 0.5,na.action=na.omit)
+  quantreg_01[i,4] <- quantreg.all$coefficients[2]
+  
+    quantreg.all <- rq(Index ~ FI, tau = 0.9,na.action=na.omit)
+  quantreg_01[i,5] <- quantreg.all$coefficients[2]
+    
+  quantreg.all <- rq(Index ~ FI, tau = 0.95,na.action=na.omit)
+  quantreg_01[i,6] <- quantreg.all$coefficients[2]
+  
+  quantreg.all <- rq(Index ~ FI, tau = 0.99,na.action=na.omit)
+  quantreg_01[i,7] <- quantreg.all$coefficients[2]
+}
+
+# Qreg result of S&P with S&P is simply 1
+
+quantreg_01["S&P 500",1:7] <- 1
+```
+
+
+
+```{r}
+save(quantreg_01,file="../R data/quantreg_01_table.Rda")
+```
+
+
+# Qreg all
+
+```{r}
+mydata <- dailyvar_01
+seq <- seq(0.01,0.99,by=0.01)
+seq.length <- length(seq)
+```
+
+
+```{r}
+stock.name <- colnames(mydata)
+stock.number <- length(stock.name)
+quantreg_01_all <- data.frame(matrix(nrow = seq.length, ncol = (stock.number+1)),
+                                     stringsAsFactors = FALSE)
+colnames(quantreg_01_all)[2:34] <- stock.name
+```
+
+Fill matrix
+```{r}
+quantreg_01_all[,1] <- seq
+numbers <- c(1:dim(mydata)[2])
+numbers <- numbers[-(index.number)]
+x <- seq(2,198,2)
+
+for (i in numbers) {
+#  i <- 1
+  Index <- as.vector(dailyvar[,"S&P 500"])
+  FI <- as.vector(mydata[,i])
+  
+  quantreg.all <- rq(Index ~ FI, tau = seq,na.action=na.omit)
+  quantreg_01_all[,i+1] <- quantreg.all$coefficients[x] 
+}
+
+```
+```{r}
+save(quantreg_01_all,file="../R data/quantreg_01_all.Rda")
+```
+
+

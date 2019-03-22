@@ -1,0 +1,116 @@
+---
+title: "R Notebook"
+---
+
+```{r}
+rm(list =ls())
+```
+
+```{r, warning=FALSE, message=FALSE}
+library(xts)
+library(quantreg)
+```
+
+Load data
+
+```{r}
+load("~/Dropbox/Research Seminar/R/R data/quantreg_01_table.Rda")
+load("~/Dropbox/Research Seminar/R/R data/quantreg_01_all.Rda")
+```
+
+```{r}
+quantiles <- quantreg_01_all
+stock.name <- rownames(quantiles)
+stock.number <- length(stock.name)
+```
+
+
+# Returns
+
+```{r}
+mydata <- data.frame(matrix(,nrow=dim(quantiles)[1],stock.number+1))
+
+mydata[,1] <- c(0.01,0.05,0.1,0.5,0.9,0.95,0.99)
+colnames(mydata)[1] <- c("Quantiles")
+
+mydata[,2:34] <- t(quantiles)
+colnames(mydata)[2:34] <- stock.name
+```
+
+```{r}
+
+setwd("~/Dropbox/Research Seminar/R/Graphs/Pr??si")
+
+png("Lines_Combo_1.png",width = 3000, height = 2000, res=110)
+
+par(cex=4,lwd=5,mar=c(4,4.2,2,0.1))
+
+plot(x=quantiles[,1],y=quantiles[,2],"l",ylab=expression(paste(beta,"-coefficient (sensitivity)"))
+     ,xlab=expression(paste("Quantile ",tau," [S&P 500]")),
+     main=expression(paste(beta,"-coefficients for all 32 U.S. financials")),
+     ylim=c(0,0.9),las=1)
+
+for (i in 2:33) {
+  points(x=quantiles[,1],y=quantiles[,i],"l")
+}
+
+dev.off()
+```
+
+```{r}
+# Create Line Chart
+
+# convert factor to numeric for convenience 
+ntrees <- max(Orange$Tree)
+
+# get the range for the x and y axis 
+xrange <- c(0,1)
+yrange <- range(Orange$circumference) 
+
+# set up the plot 
+plot(xrange, yrange, type="n", xlab="Age (days)",
+  	ylab="Circumference (mm)" ) 
+colors <- rainbow(ntrees) 
+linetype <- c(1:ntrees) 
+plotchar <- seq(18,18+ntrees,1)
+
+# add lines 
+for (i in 1:ntrees) { 
+  tree <- subset(Orange, Tree==i) 
+  lines(tree$age, tree$circumference, type="b", lwd=1.5,
+    lty=linetype[i], col=colors[i], pch=plotchar[i]) 
+} 
+
+# add a title and subtitle 
+title("Tree Growth", "example of line plot")
+
+# add a legend 
+legend(xrange[1], yrange[2], 1:ntrees, cex=0.8, col=colors,
+  	pch=plotchar, lty=linetype, title="Tree")
+```
+
+
+
+
+```{r}
+setwd("~/Dropbox/Research Seminar/R/Graphs/Pr??si")
+png("Quantiles_beta_01.png",width = 3500, height = 1000, res=110)
+
+par(oma=c(0,2,0,0))
+par(mar=c(0,4,1,2),cex=2.5,lwd=3)
+
+i <- 3
+plot.zoo(mydata[,i],ylim = c(-1,1),ylab="",xlab = "",las=1,xaxt="n",lwd=3)
+legend("topleft", colnames(mydata)[i], bty="n")
+axis.Date(1,at=pretty(index(mydata[,i]),28),
+            labels=format(pretty(index(mydata[,i]),28),format="%Y"),
+            las=1)
+
+title(ylab = "Daily simple return",
+      outer = TRUE, line = 0)
+#op
+dev.off()
+```
+
+
+

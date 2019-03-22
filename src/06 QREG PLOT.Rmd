@@ -1,0 +1,146 @@
+---
+title: "VaR Charts"
+---
+
+```{r}
+rm(list =ls())
+```
+
+```{r, warning=FALSE, message=FALSE}
+library(xts)
+library(quantreg)
+```
+
+Load data
+
+```{r}
+#load("~/Dropbox/Research Seminar/R/R data/dailyvar_01_neu.Rda")
+load("~/Dropbox/Research Seminar/R/R data/dailyvar_01.Rda")
+load("~/Dropbox/Research Seminar/R/R data/dailyvar_05.Rda")
+# load("~/Dropbox/Research Seminar/R/R data/dailyvar_10.Rda")
+```
+
+
+```{r}
+stock.name <- names(dailyvar_01)
+stock.number <- length(stock.name)
+stock.length <- dim(dailyvar_01)[1]
+index.number <- which(colnames(dailyvar_01)=="S&P 500")
+```
+
+##########
+Nedds function
+
+```{r}
+load("~/Dropbox/Research Seminar/R/Functions/myqrplot.Rda")
+```
+
+Setting up plotting function
+
+```{r}
+
+myqregplot <- function(index=NULL, fi = NULL, ylim=NULL, main=NULL,ylab=NULL,mar=c(5,6,3,2)) {
+  
+  NonNAindex <- which(!is.na(fi))
+  firstNonNA <- min(NonNAindex)
+  length <- dim(fi)[1]
+  
+  Index <- index[firstNonNA:length]
+  FI <- fi[firstNonNA:length]
+
+  quantreg.all <- rq(Index ~ FI, tau = c(0.01,seq(0.05,0.95,by=0.05)),na.action=na.omit)
+  quantreg.plot <- summary(quantreg.all) 
+  
+  myqrplot(quantreg.plot,parm=2,
+                ylab=ylab,xlab=expression(paste("Quantile ",tau," [S&P 500]")),
+                main=main,axes=FALSE,ylim=ylim,
+                cex=2,mar = mar,lwd=3)
+
+  box()
+}
+```
+
+# Paper Charts
+
+```{r}
+setwd("~/Dropbox/Research Seminar/R/Graphs/Ergebnisse")
+
+numbers <- c(1:stock.number)
+numbers <- numbers[-index.number]
+numbers <- c(2,19) # AIG & JP
+
+png("Qreg_Combo.png",width = 3000, height = 1000, res=110)
+
+par(mfcol=c(1,2))
+
+myqregplot(index=dailyvar_01[,index.number], fi = dailyvar_01[,2], ylim=c(0,0.4),main=stock.name[2],
+           ylab=expression(paste(beta,"-coefficient (sensitivity)")))
+
+myqregplot(index=dailyvar_01[,index.number], fi = dailyvar_01[,19], mar=c(5,3,3,5),
+           ylim=c(0,0.4),main=stock.name[19],ylab="")
+
+
+
+dev.off()
+```
+
+
+
+<!-- # Combo Chart -->
+
+<!-- ```{r} -->
+<!-- chart_names <- c("Jpmorgan Chase & Co","Morgan Stanley Group Inc","Zions Bancorporation","American International Group Inc" -->
+<!--                  ,"Lincoln National Corp" ,"M B I A Inc"  ) -->
+
+<!-- chart_numbers <- vector(length=length(chart_names)) -->
+<!-- for (i in 1:length(chart_names)) { -->
+<!-- chart_numbers[i] <- which(names(dailyvar_01) %in% chart_names[i])   -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- # TEST -->
+
+
+
+<!-- # Daily -->
+
+
+
+
+<!-- ```{r} -->
+<!-- setwd("~/Dropbox/Research Seminar/R/Graphs/Quantreg/Daily/1 percent") -->
+
+<!-- numbers <- c(1:stock.number) -->
+<!-- numbers <- numbers[-index.number] -->
+
+<!-- for (i in numbers) { -->
+<!--   png(paste0(i," - ",stock.name[i],".png"),width = 1400, height = 1000, res=110) -->
+
+<!--   myqregplot(index=dailyvar_01[,index.number], fi = dailyvar_01[,i], ylim=c(0,1), main=paste0(stock.name[i]," - 1% VaR")) -->
+
+<!--   dev.off() -->
+<!-- } -->
+
+<!-- ``` -->
+
+
+<!-- # Weekly -->
+
+<!-- ```{r} -->
+<!-- # setwd("~/Dropbox/Research Seminar/R/Graphs/Quantreg/Weekly") -->
+<!-- #  -->
+<!-- # end <- stock.number-1 -->
+<!-- # for(i in 1:end) { -->
+<!-- #   png(paste0(i," - weekly - ",stock.name[i],".png"),width = 1400, height = 1000, res=110) -->
+<!-- #    -->
+<!-- #   myqregplot(index=dailyvar_01[,stock.number], fi = dailyvar_01[,i], ylim=c(0,2.2), main=paste0(stock.name[i]," - 1% VaR")) -->
+<!-- #    -->
+<!-- #   dev.off() -->
+<!-- # } -->
+
+<!-- ``` -->
+
+
+
+
+

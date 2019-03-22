@@ -1,0 +1,122 @@
+---
+title: "Robustness"
+---
+
+```{r}
+rm(list=ls())
+```
+
+```{r}
+library(xtable)
+```
+
+
+```{r}
+load("../Result data/result_daily.Rda")
+load("../Result data/result_weekly.Rda")
+load("../Result data/result_monthly.Rda")
+load("../Result data/result_e_garch.Rda")
+load("../Result data/result_student_t.Rda")
+load("../Result data/result_subsample_2000.Rda")
+load("../Result data/result_subsample_2004.Rda")
+load("../Result data/result_subsample_2010.Rda")
+load("../Result data/result_subsample_2015.Rda")
+```
+
+```{r}
+stock.number <- dim(result_daily)[1]
+model.number <- 9
+index.number <- 1
+```
+
+
+```{r}
+# summary(lm(result_daily$`SRISK in Mrd. $`~ result_daily$`Marketcap in Mrd. $`))
+# summary(lm(result_daily$`SSVaR in Mrd. $`~ result_daily$`Marketcap in Mrd. $`))
+```
+
+
+```{r}
+row_name <- c(row.names(result_daily),"","N","OLS regression","Intercept","Slope","t-value","p-value","adj. R^2","Correlation measures","Pearson","Spearman")
+col_name <- c("SRISK","Daily","Weekly","Monthly","e-GARCH","Student-t","2000-","2004-","2010-","2015-")
+SSVaR_D <- data.frame(matrix(nrow = length(row_name), ncol = length(col_name)), stringsAsFactors = FALSE)
+rownames(SSVaR_D) <- row_name
+colnames(SSVaR_D) <- col_name
+```
+
+
+```{r}
+i <- 19
+
+SSVaR_D[1:stock.number,1] <- result_daily[,3]
+SSVaR_D[1:stock.number,2] <- result_daily[,i]
+SSVaR_D[1:stock.number,3] <- result_weekly[,i]
+SSVaR_D[1:stock.number,4] <- result_monthly[,i]
+SSVaR_D[1:stock.number,5] <- result_e_garch[,i]
+SSVaR_D[1:stock.number,6] <- result_student_t[,i]
+SSVaR_D[1:stock.number,7] <- result_subsample_2000[,i]
+SSVaR_D[1:stock.number,8] <- result_subsample_2004[,i]
+SSVaR_D[1:stock.number,9] <- result_subsample_2010[,i]
+SSVaR_D[1:stock.number,10] <- result_subsample_2015[,i]
+
+SSVaR_D <- SSVaR_D[order(SSVaR_D$Daily),]
+```
+
+# Regressing SRISK ~ SSVaR in $
+
+
+
+```{r}
+# Regression
+i <- 1
+
+
+SSVaR_D[34,] <- colSums(SSVaR_D[2:33,],na.rm = TRUE)
+
+
+for (i in 1:model.number){
+  
+reg <- summary(lm(SSVaR_D[,1]~SSVaR_D[,(i+1)]))  # Regression
+  SSVaR_D[35,i+1] <- NA # Number of Observation
+  SSVaR_D[36,i+1] <- NA #OLS Regression
+  SSVaR_D[37,i+1] <- coef(reg)[1,1] # Intercept
+  SSVaR_D[38,i+1] <- coef(reg)[2,1] # Slope    
+  SSVaR_D[39,i+1] <- coef(reg)[2,3] # t-value
+  SSVaR_D[40,i+1] <- coef(reg)[2,4] # p-value
+  SSVaR_D[41,i+1] <- reg$r.squared  # adj. R^2
+  
+  
+  cor_data <- cbind(SSVaR_D[-c(index.number,34:44),1],SSVaR_D[-c(index.number,34:44),(i+1)])
+  SSVaR_D[43,i+1] <- cor(cor_data, use = "everything",method = c("pearson"))[2,1]
+  SSVaR_D[44,i+1] <- cor(cor_data, use = "everything",method = c("spearman"))[2,1]
+}
+  
+  cor_spear <- cor(cor_data[-c(30,31),], use = "everything",method = c("pearson"))
+
+  SSVaR_D[43,10] <- cor_spear[2,1]
+  SSVaR_D[44,10] <- cor(cor_data[-c(30,31),], use = "everything",method = c("spearman"))[2,1]
+```
+
+# Correlation
+
+
+```{r}
+xtable(SSVaR_D)
+```
+
+```{r}
+i <- 19
+
+SSVaR_D[,1] <- result_daily[,3]/sum(result_daily[,3],na.rm = TRUE)
+SSVaR_D[,2] <- result_daily[,i]/sum(result_daily[-28,i],na.rm = TRUE)
+SSVaR_D[,3] <- result_weekly[,i]/sum(result_weekly[-28,i],na.rm = TRUE)
+SSVaR_D[,4] <- result_monthly[,i]/sum(result_monthly[-28,i],na.rm = TRUE)
+SSVaR_D[,5] <- result_e_garch[,i]/sum(result_e_garch[-28,i],na.rm = TRUE)
+SSVaR_D[,6] <- result_student_t[,i]/sum(result_student_t[-28,i],na.rm = TRUE)
+SSVaR_D[,7] <- result_subsample_2000[,i]/sum(result_subsample_2000[-28,i],na.rm = TRUE)
+SSVaR_D[,8] <- result_subsample_2004[,i]/sum(result_subsample_2004[-28,i],na.rm = TRUE)
+SSVaR_D[,9] <- result_subsample_2010[,i]/sum(result_subsample_2010[-28,i],na.rm = TRUE)
+SSVaR_D[,10] <- result_subsample_2015[,i]/sum(result_subsample_2015[-28,i],na.rm = TRUE)
+
+SSVaR_D <- SSVaR_D[order(SSVaR_D$Daily),]
+```
